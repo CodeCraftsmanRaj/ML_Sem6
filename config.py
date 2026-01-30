@@ -18,4 +18,4 @@ NOISE_LEVEL = 2.0   # Standard deviation of error
 
 # Multiple Linear Regression Settings (y = b0 + b1*x1 + b2*x2 + ... + bn*xn)
 # Number of features is determined by the length of MLR_COEFFS
-MLR_COEFFS = [3.0, 1.5, 2.0, 0.8, 1.2]  # beta_1, beta_2, beta_3, beta_4, beta_5
+MLR_COEFFS = [3.0, 1.5, 2.0]  # beta_1, beta_2, beta_3, beta_4, beta_5

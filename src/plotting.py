@@ -26,33 +26,63 @@ def plot_slr_scatter(X, y, model):
 
 
 def plot_mlr_scatter(X, y, model):
-    """Plot scatter plots for each feature in Multiple Linear Regression."""
+    """Plot 3D scatter plot for MLR (Visualizing first 2 features vs Target)."""
     num_features = X.shape[1]
     
-    # Create subplots for each feature
-    cols = min(3, num_features)
-    rows = (num_features + cols - 1) // cols
-    fig, axes = plt.subplots(rows, cols, figsize=(5*cols, 4*rows))
+    if num_features < 2:
+        print("Need at least 2 features for 3D plot. Falling back to 2D.")
+        plot_slr_scatter(X, y, model)
+        return
+
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
     
-    if num_features == 1:
-        axes = [axes]
+    # Extract features and flatten y
+    x1 = X[:, 0]
+    x2 = X[:, 1]
+    y_flat = y.flatten()
+    
+    # Plot actual data points
+    # If 3rd feature exists, use it for color, else use y
+    if num_features >= 3:
+        c = X[:, 2]
+        c_label = "Feature X3"
     else:
-        axes = axes.flatten()
+        c = y_flat
+        c_label = "Target y"
+        
+    scatter = ax.scatter(x1, x2, y_flat, c=c, cmap='viridis', s=50, alpha=0.8)
     
-    for i in range(num_features):
-        ax = axes[i]
-        ax.scatter(X[:, i], y, color='blue', alpha=0.6)
-        ax.set_xlabel(f'X{i+1}')
-        ax.set_ylabel('y')
-        ax.set_title(f'Feature X{i+1} vs y')
-        ax.grid(True, alpha=0.3)
+    # Create a meshgrid for the regression plane
+    x1_range = np.linspace(x1.min(), x1.max(), 20)
+    x2_range = np.linspace(x2.min(), x2.max(), 20)
+    xx1, xx2 = np.meshgrid(x1_range, x2_range)
     
-    # Hide unused subplots
-    for j in range(num_features, len(axes)):
-        axes[j].set_visible(False)
+    # Predict y values for the plane
+    # We need to fill other features (X3, etc.) with their mean to visualize the plane of X1, X2
+    plane_X = np.zeros((xx1.ravel().shape[0], num_features))
+    plane_X[:, 0] = xx1.ravel()
+    plane_X[:, 1] = xx2.ravel()
     
-    plt.suptitle(f'Multiple Linear Regression - {num_features} Features', fontsize=14)
+    # If there are more features, set them to their mean value for the prediction plane
+    for i in range(2, num_features):
+        plane_X[:, i] = X[:, i].mean()
+        
+    y_pred_plane = model.predict(plane_X)
+    yy = y_pred_plane.reshape(xx1.shape)
+    
+    # Plot the regression plane
+    ax.plot_surface(xx1, xx2, yy, alpha=0.3, color='orange')
+    
+    ax.set_xlabel('Feature X1')
+    ax.set_ylabel('Feature X2')
+    ax.set_zlabel('Target y')
+    ax.set_title(f'MLR 3D Visualization\n(Plane at mean of other features)')
+    
+    # Add colorbar
+    plt.colorbar(scatter, label=c_label, pad=0.1)
+    
     plt.tight_layout()
-    plt.savefig('data/mlr_scatter_plot.png', dpi=150)
+    plt.savefig('data/mlr_3d_plot.png', dpi=150)
     plt.show()
-    print("MLR scatter plot saved to: data/mlr_scatter_plot.png")
+    print("MLR 3D plot saved to: data/mlr_3d_plot.png")
