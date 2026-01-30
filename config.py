@@ -4,12 +4,12 @@ import os
 
 # Global Settings
 RANDOM_SEED = 42
-DATA_SIZE = 100
+DATA_SIZE = 10
 TEST_SPLIT = 0.2
 
 # Dataset Settings
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
-FORCE_REGENERATE = False # Set to True to regenerate datasets
+FORCE_REGENERATE = True # Set to True to regenerate datasets
 
 # Simple Linear Regression Settings (y = b0 + b1*x)
 SLR_INTERCEPT = 10  # beta_0
