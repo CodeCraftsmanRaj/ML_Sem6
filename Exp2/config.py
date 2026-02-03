@@ -12,7 +12,7 @@ if not os.path.exists(PLOTS_DIR):
 
 # Dataset Configuration (Student Pass/Fail Scenario)
 DATASET_PATH = os.path.join(DATA_DIR, 'student_data.csv')
-N_SAMPLES = 10
+N_SAMPLES = 1000000
 FEATURES = ['Study_Hours', 'Prev_Exam_Score', 'Attendance_Pct']
 TARGET = 'Pass'
 RANDOM_STATE = 42
