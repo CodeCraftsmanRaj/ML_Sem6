@@ -1,0 +1,158 @@
+Here is a detailed breakdown of every file in your Exp3 directory. I will explain what the code does, why it is written that way, and the Machine Learning concepts behind it.
+
+1. config/config.yaml (The Control Center)
+
+This is not Python code; it is a configuration file. Its purpose is to separate your parameters from your logic.
+
+Why use it? If you want to change the SVM kernel from rbf to linear, you shouldn't have to open train.py and risk breaking code. You just change it here.
+
+code
+Yaml
+download
+content_copy
+expand_less
+experiment:
+  random_seed: 42      # Ensures the "random" numbers are the same every time you run it (Reproducibility).
+
+data:
+  n_samples: 1000      # Total rows of data.
+  n_features: 2        # Total columns. We use 2 so we can plot X vs Y easily on a 2D graph.
+  n_informative: 2     # How many features actually help predict the target.
+  class_sep: 1.5       # "Class Separation". Higher number = easier task (clusters are far apart).
+  test_size: 0.2       # 20% of data is hidden for testing, 80% used for training.
+
+model:
+  type: "svm"
+  kernel: "rbf"        # Radial Basis Function. It allows the SVM to draw curved lines, not just straight ones.
+  C: 1.0               # The "Strictness" parameter.
+                       # High C = Strict (don't miss any points, risk overfitting).
+                       # Low C = Loose (allows some errors, smoother line).
+2. src/utils.py (The Toolbox)
+
+These are helper functions used by other scripts.
+load_config(): Reads the YAML file above and converts it into a Python Dictionary so other scripts can read settings like cfg['model']['C'].
+joblib: We use joblib instead of Python's standard pickle because joblib is optimized for saving large NumPy arrays (which Scikit-Learn models are made of).
+save_model: Saves the trained brain (model) to a file (.pkl).
+
+load_model: Wakes the brain up so it can make predictions again.
+
+3. src/data_generator.py (The Factory)
+
+This script creates synthetic (fake) data.
+
+Key Code Breakdown:
+
+code
+Python
+download
+content_copy
+expand_less
+X, y = make_classification(
+    n_samples=data_cfg['n_samples'],
+    ...
+)
+
+make_classification: This is a Scikit-Learn function that uses math to generate clusters of data points.
+
+n_redundant=0: We set this to 0. Redundant features are useless copies of other features (noise). We want pure data for this experiment.
+
+Saving: It saves a CSV file.
+
+feature_1, feature_2: The coordinates (X, Y).
+
+target: The class (0 or 1, e.g., "Red Team" vs "Blue Team").
+
+4. src/train.py (The Classroom)
+
+This is where the machine actually "learns".
+
+Key Code Breakdown:
+
+Splitting:
+
+code
+Python
+download
+content_copy
+expand_less
+X_train, X_test, y_train, y_test = train_test_split(...)
+
+We hide 20% of the data (test_size=0.2). The model never sees this during training. This is the only way to prove the model actually works on new data later.
+
+The Pipeline (CRITICAL STEP):
+
+code
+Python
+download
+content_copy
+expand_less
+model = make_pipeline(
+    StandardScaler(),
+    SVC(...)
+)
+
+StandardScaler(): SVM calculates distances between points. If Feature 1 ranges from 0-1 and Feature 2 ranges from 0-1000, the SVM will get confused and think Feature 2 is more important. Scaling forces all features to be on the same scale (roughly -1 to 1).
+
+SVC: Support Vector Classifier. This acts as the brain.
+
+make_pipeline: This bundles the Scaler and the SVM together. When we save the model later, we save both. This ensures that new data is automatically scaled exactly like the training data was.
+
+model.fit(X_train, y_train): This is the heavy lifting. The math runs here to find the best boundary line.
+
+5. src/evaluate.py (The Exam)
+
+This script checks how well the model performed.
+
+Key Code Breakdown:
+
+Loading: It loads the .pkl file (the trained pipeline).
+
+y_pred = model.predict(X_test):
+The model looks at the Test features (which it has never seen) and guesses the Class.
+
+Metrics:
+
+accuracy_score: (Correct Guesses) / (Total Guesses).
+
+confusion_matrix: Shows False Positives vs False Negatives.
+
+DecisionBoundaryDisplay (The Plot):
+
+code
+Python
+download
+content_copy
+expand_less
+DecisionBoundaryDisplay.from_estimator(model, X, ...)
+
+This is a powerful visualization function.
+
+It takes the entire grid of the graph.
+
+It asks the SVM: "If a point was here, what color would it be?"
+
+It paints the background Red or Blue based on that answer.
+
+Then, it scatters the real data points on top so you can see if the model was right.
+
+6. main.py (The Manager)
+
+This file performs no logic itself. It simply calls the other files in the correct order.
+
+code
+Python
+download
+content_copy
+expand_less
+generate_data()  # 1. Create the CSV
+train_model()    # 2. Read CSV, Train SVM, Save .pkl
+evaluate_model() # 3. Load .pkl, Test Accuracy, Draw Graph
+Summary of the Workflow for Exp3
+
+Config: You decide you want a "wiggly" line (rbf kernel) and 1000 data points.
+
+Data Gen: Python creates a CSV with 2 columns of numbers and 1 target column.
+
+Train: Python loads the CSV, scales the numbers, finds the mathematical line that separates the classes, and saves that math into a file.
+
+Evaluate: Python loads the math, tests it on hidden data, prints "95% Accuracy", and draws a picture showing the line separating the dots.

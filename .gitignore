@@ -38,7 +38,6 @@ Exp2/data/
 # Exp3 (SVM)
 # ===========================
 # Ignore raw and processed synthetic data
-Exp3/data/
 # Ignore trained model binaries (.pkl)
 Exp3/models/
 # Ignore visualization outputs
