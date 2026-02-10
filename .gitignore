@@ -1,2 +1,47 @@
+# ===========================
+# Python / Environment
+# ===========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
 .venv/
+*.egg-info/
+.coverage
+htmlcov/
+
+# ===========================
+# OS / IDE
+# ===========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ===========================
+# Exp1 (Regression)
+# ===========================
+# Ignore generated datasets and plots
 Exp1/data/
+
+# ===========================
+# Exp2 (Decision Tree)
+# ===========================
+# Ignore student data csv
+Exp2/data/
+# Ignore generated decision tree plots
+
+# ===========================
+# Exp3 (SVM)
+# ===========================
+# Ignore raw and processed synthetic data
+Exp3/data/
+# Ignore trained model binaries (.pkl)
+Exp3/models/
+# Ignore visualization outputs
+
+# Note: We are KEEPING uv.lock and requirements.txt
+# as they are essential for reproducibility.

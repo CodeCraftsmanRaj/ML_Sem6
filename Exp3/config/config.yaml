@@ -1,0 +1,22 @@
+experiment:
+  random_seed: 42
+
+data:
+  n_samples: 1000
+  n_features: 2        # Keep 2 for easy visualization, increase for complexity
+  n_informative: 2
+  n_redundant: 0
+  n_clusters_per_class: 1
+  class_sep: 1.5       # Higher = easier to separate
+  output_path: "data/raw/synthetic_data.csv"
+  test_size: 0.2
+
+model:
+  type: "svm"
+  kernel: "rbf"        # Options: linear, poly, rbf, sigmoid
+  C: 1.0               # Regularization parameter
+  gamma: "scale"       # Kernel coefficient
+  save_path: "models/svm_model.pkl"
+
+visualization:
+  plot_path: "outputs/decision_boundary.png"
