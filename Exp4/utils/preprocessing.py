@@ -1,15 +1,19 @@
-import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from config import TEST_SIZE, RANDOM_STATE, FEATURE_COLUMNS, TARGET_COLUMN
 
 def preprocess_data(df):
+
     df = df.dropna()
 
-    X = df[["Age", "Annual_Income", "Spending_Score"]].values
-    y = df["Purchase"].values
+    X = df[FEATURE_COLUMNS].values
+    y = df[TARGET_COLUMN].values
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+        X,
+        y,
+        test_size=TEST_SIZE,
+        random_state=RANDOM_STATE
     )
 
     scaler = StandardScaler()
