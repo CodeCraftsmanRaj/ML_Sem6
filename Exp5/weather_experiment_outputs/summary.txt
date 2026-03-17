@@ -1,0 +1,7 @@
+WEATHER PREDICTION USING ENSEMBLE METHODS
+----------------------------------------
+Random Forest Accuracy: 0.998
+Random Forest AUC: 0.9999405964120233
+
+Bagging Accuracy: 1.0
+Bagging AUC: 1.0
