@@ -13,4 +13,5 @@ dependencies = [
     "reportlab>=4.4.10",
     "scikit-learn>=1.7.2",
     "seaborn>=0.13.2",
+    "xgboost>=3.2.0",
 ]
