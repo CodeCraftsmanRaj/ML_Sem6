@@ -1,6 +1,6 @@
 # ============================================================
-# BOOSTING ALGORITHMS EXPERIMENT
-# AdaBoost vs XGBoost
+# ML Experiment 6
+# Boosting Algorithms: AdaBoost vs XGBoost
 # ============================================================
 
 import os
@@ -25,37 +25,39 @@ from sklearn.metrics import (
 
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
-
 from xgboost import XGBClassifier
 
 # ============================================================
 # Create folders
 # ============================================================
 
-os.makedirs("boosting_experiment/dataset", exist_ok=True)
-os.makedirs("boosting_experiment/models", exist_ok=True)
-os.makedirs("boosting_experiment/plots", exist_ok=True)
-os.makedirs("boosting_experiment/metrics", exist_ok=True)
+os.makedirs("dataset", exist_ok=True)
+os.makedirs("models", exist_ok=True)
+os.makedirs("plots", exist_ok=True)
+os.makedirs("metrics", exist_ok=True)
 
 # ============================================================
-# 1 Generate Synthetic Dataset
+# 1 Generate Dataset
 # ============================================================
 
 X, y = make_classification(
-    n_samples=5000,
-    n_features=10,
-    n_informative=6,
+    n_samples=6000,
+    n_features=12,
+    n_informative=8,
     n_redundant=2,
-    n_classes=2,
+    n_clusters_per_class=2,
+    class_sep=1.5,
+    flip_y=0.01,
     random_state=42
 )
 
-columns = [f"feature_{i}" for i in range(10)]
+# automatically create column names
+columns = [f"Feature_{i}" for i in range(X.shape[1])]
 
 df = pd.DataFrame(X, columns=columns)
-df["target"] = y
+df["Target"] = y
 
-df.to_csv("boosting_experiment/dataset/synthetic_boosting_dataset.csv", index=False)
+df.to_csv("dataset/boosting_dataset.csv", index=False)
 
 print("Dataset saved.")
 
@@ -64,17 +66,17 @@ print("Dataset saved.")
 # ============================================================
 
 X_train, X_test, y_train, y_test = train_test_split(
-    df[columns], df["target"], test_size=0.2, random_state=42
+    df[columns], df["Target"], test_size=0.2, random_state=42
 )
 
 # ============================================================
-# 3 Models
+# 3 Initialize Models
 # ============================================================
 
 ada_model = AdaBoostClassifier(
-    estimator=DecisionTreeClassifier(max_depth=1),
+    estimator=DecisionTreeClassifier(max_depth=5),
     n_estimators=200,
-    learning_rate=0.5,
+    learning_rate=0.05,
     random_state=42
 )
 
@@ -85,7 +87,7 @@ xgb_model = XGBClassifier(
     subsample=0.8,
     colsample_bytree=0.8,
     eval_metric="logloss",
-    use_label_encoder=False
+    random_state=42
 )
 
 # ============================================================
@@ -96,8 +98,8 @@ ada_model.fit(X_train, y_train)
 xgb_model.fit(X_train, y_train)
 
 # Save models
-joblib.dump(ada_model, "boosting_experiment/models/adaboost_model.pkl")
-joblib.dump(xgb_model, "boosting_experiment/models/xgboost_model.pkl")
+joblib.dump(ada_model, "models/adaboost.pkl")
+joblib.dump(xgb_model, "models/xgboost.pkl")
 
 # ============================================================
 # 5 Predictions
@@ -110,7 +112,7 @@ ada_prob = ada_model.predict_proba(X_test)[:,1]
 xgb_prob = xgb_model.predict_proba(X_test)[:,1]
 
 # ============================================================
-# 6 Metrics Function
+# 6 Evaluation Function
 # ============================================================
 
 def evaluate_model(name, y_true, y_pred, y_prob):
@@ -134,19 +136,29 @@ def evaluate_model(name, y_true, y_pred, y_prob):
 # 7 Compute Metrics
 # ============================================================
 
-metrics = []
+results = []
 
-metrics.append(evaluate_model("AdaBoost", y_test, ada_pred, ada_prob))
-metrics.append(evaluate_model("XGBoost", y_test, xgb_pred, xgb_prob))
+results.append(evaluate_model("AdaBoost", y_test, ada_pred, ada_prob))
+results.append(evaluate_model("XGBoost", y_test, xgb_pred, xgb_prob))
 
-metrics_df = pd.DataFrame(metrics)
-
-metrics_df.to_csv("boosting_experiment/metrics/metrics_summary.csv", index=False)
+metrics_df = pd.DataFrame(results)
 
 print(metrics_df)
 
+metrics_df.to_csv("metrics/model_metrics.csv", index=False)
+
 # ============================================================
-# 8 Confusion Matrix Plot
+# 8 Classification Reports
+# ============================================================
+
+print("\nAdaBoost Classification Report\n")
+print(classification_report(y_test, ada_pred))
+
+print("\nXGBoost Classification Report\n")
+print(classification_report(y_test, xgb_pred))
+
+# ============================================================
+# 9 Confusion Matrix Plot
 # ============================================================
 
 def plot_confusion_matrix(y_true, y_pred, name):
@@ -160,14 +172,14 @@ def plot_confusion_matrix(y_true, y_pred, name):
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
 
-    plt.savefig(f"boosting_experiment/plots/{name}_confusion_matrix.png")
+    plt.savefig(f"plots/{name}_confusion_matrix.png")
     plt.close()
 
-plot_confusion_matrix(y_test, ada_pred, "adaboost")
-plot_confusion_matrix(y_test, xgb_pred, "xgboost")
+plot_confusion_matrix(y_test, ada_pred, "AdaBoost")
+plot_confusion_matrix(y_test, xgb_pred, "XGBoost")
 
 # ============================================================
-# 9 ROC Curve
+# 10 ROC Curve
 # ============================================================
 
 fpr_ada, tpr_ada, _ = roc_curve(y_test, ada_prob)
@@ -182,36 +194,37 @@ plt.plot([0,1],[0,1],'k--')
 
 plt.xlabel("False Positive Rate")
 plt.ylabel("True Positive Rate")
-plt.title("ROC Curve Comparison")
 
+plt.title("ROC Curve Comparison")
 plt.legend()
 
-plt.savefig("boosting_experiment/plots/roc_curves.png")
+plt.savefig("plots/roc_curve.png")
 plt.close()
 
 # ============================================================
-# 10 Feature Importance
+# 11 Feature Importance (XGBoost)
 # ============================================================
 
 importance = xgb_model.feature_importances_
 
-plt.figure(figsize=(8,5))
+plt.figure(figsize=(8,6))
 sns.barplot(x=importance, y=columns)
 
 plt.title("XGBoost Feature Importance")
 
-plt.savefig("boosting_experiment/plots/feature_importance.png")
+plt.savefig("plots/feature_importance.png")
 plt.close()
 
 # ============================================================
-# 11 Model Comparison Plot
+# 12 Model Comparison Plot
 # ============================================================
 
 metrics_df.set_index("Model").plot(kind="bar", figsize=(10,6))
 
 plt.title("Boosting Model Comparison")
+plt.ylabel("Score")
 
-plt.savefig("boosting_experiment/plots/model_comparison.png")
+plt.savefig("plots/model_comparison.png")
 plt.close()
 
-print("Experiment Complete.")
+print("\nExperiment Complete.")
