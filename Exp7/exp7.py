@@ -1,130 +1,187 @@
 # =========================================
-# EXPERIMENT: K-MEANS CLUSTERING PIPELINE
+# FAST K-MEANS (HIGH SILHOUETTE - OPTIMIZED)
 # =========================================
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+import itertools
+
+from sklearn.datasets import load_breast_cancer
+from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
-from sklearn.datasets import make_blobs
 from sklearn.metrics import silhouette_score, davies_bouldin_score
 
 # =========================================
-# CREATE OUTPUT DIRECTORY
+# OUTPUT DIRECTORY
 # =========================================
-OUTPUT_DIR = "kmeans_results"
+OUTPUT_DIR = "kmeans_fast_results"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # =========================================
-# 1. SYNTHETIC DATA GENERATION
+# 1. LOAD DATASET
 # =========================================
-print("Generating synthetic dataset...")
+print("Loading dataset...")
 
-X, y_true = make_blobs(
-    n_samples=1000,
-    centers=4,
-    cluster_std=1.5,
-    random_state=42
-)
-
-df = pd.DataFrame(X, columns=["Feature1", "Feature2"])
-df["True_Label"] = y_true
-
-df.to_csv(f"{OUTPUT_DIR}/dataset.csv", index=False)
+data = load_breast_cancer()
+df = pd.DataFrame(data.data, columns=data.feature_names)
 
 # =========================================
-# 2. ELBOW METHOD
+# 2. SELECT TOP FEATURES (FAST 🔥)
 # =========================================
-print("Running Elbow Method...")
+top_features = [
+    'mean radius', 'mean texture', 'mean perimeter',
+    'mean area', 'mean concave points',
+    'worst radius', 'worst perimeter',
+    'worst area', 'worst concave points', 'worst texture'
+]
 
-inertia = []
-K_range = range(1, 11)
-
-for k in K_range:
-    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
-    kmeans.fit(X)
-    inertia.append(kmeans.inertia_)
-
-# Plot Elbow Curve
-plt.figure()
-plt.plot(K_range, inertia, marker='o')
-plt.title("Elbow Method")
-plt.xlabel("Number of Clusters (K)")
-plt.ylabel("Inertia (WCSS)")
-plt.grid()
-plt.savefig(f"{OUTPUT_DIR}/elbow_plot.png")
-plt.close()
+df = df[top_features]
 
 # =========================================
-# 3. TRAIN FINAL MODEL
+# 3. SCALE DATA
 # =========================================
-K_OPTIMAL = 4  # Based on elbow (you can adjust)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(df)
 
-print(f"Training KMeans with K={K_OPTIMAL}...")
-
-kmeans = KMeans(n_clusters=K_OPTIMAL, random_state=42, n_init=10)
-labels = kmeans.fit_predict(X)
-
-df["Cluster"] = labels
+feature_names = df.columns
 
 # =========================================
-# 4. METRICS
+# 4. SEARCH BEST FEATURE PAIR + K
 # =========================================
-print("Calculating metrics...")
+print("Searching best feature pair (optimized)...")
 
-sil_score = silhouette_score(X, labels)
-db_score = davies_bouldin_score(X, labels)
-inertia_final = kmeans.inertia_
+best_score = -1
+best_features = None
+best_k = None
+best_X = None
+
+count = 0
+
+for f1, f2 in itertools.combinations(range(len(feature_names)), 2):
+    count += 1
+
+    if count % 10 == 0:
+        print(f"Processed {count} combinations...")
+
+    X_subset = X_scaled[:, [f1, f2]]
+
+    for k in range(2, 4):  # reduced K range
+        kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+        labels = kmeans.fit_predict(X_subset)
+
+        score = silhouette_score(X_subset, labels)
+
+        if score > best_score:
+            best_score = score
+            best_features = (feature_names[f1], feature_names[f2])
+            best_k = k
+            best_X = X_subset
+
+print("\n===== BEST CONFIGURATION =====")
+print("Best Features:", best_features)
+print("Best K:", best_k)
+print("Best Silhouette Score:", best_score)
+
+# =========================================
+# 5. FINAL MODEL
+# =========================================
+kmeans = KMeans(n_clusters=best_k, random_state=42, n_init=10)
+labels = kmeans.fit_predict(best_X)
+
+# =========================================
+# 6. METRICS
+# =========================================
+sil = silhouette_score(best_X, labels)
+db = davies_bouldin_score(best_X, labels)
+inertia = kmeans.inertia_
 
 metrics = {
-    "K": K_OPTIMAL,
-    "Inertia (WCSS)": inertia_final,
-    "Silhouette Score": sil_score,
-    "Davies-Bouldin Index": db_score
+    "Features": str(best_features),
+    "K": best_k,
+    "Inertia": inertia,
+    "Silhouette Score": sil,
+    "Davies-Bouldin Index": db
 }
 
 metrics_df = pd.DataFrame([metrics])
 metrics_df.to_csv(f"{OUTPUT_DIR}/metrics.csv", index=False)
 
 # =========================================
-# 5. CLUSTER VISUALIZATION
+# 7. CLUSTER PLOT
 # =========================================
-print("Generating plots...")
-
 plt.figure()
-plt.scatter(X[:, 0], X[:, 1], c=labels)
+plt.scatter(best_X[:, 0], best_X[:, 1], c=labels)
 plt.scatter(
     kmeans.cluster_centers_[:, 0],
     kmeans.cluster_centers_[:, 1],
     s=300,
     marker='X'
 )
-plt.title("K-Means Clustering")
-plt.xlabel("Feature1")
-plt.ylabel("Feature2")
+plt.title(f"Best Clustering ({best_features[0]} vs {best_features[1]})")
+plt.xlabel(best_features[0])
+plt.ylabel(best_features[1])
 plt.savefig(f"{OUTPUT_DIR}/clusters.png")
 plt.close()
 
 # =========================================
-# 6. SAVE FINAL DATASET WITH CLUSTERS
+# 8. ELBOW METHOD
 # =========================================
-df.to_csv(f"{OUTPUT_DIR}/clustered_data.csv", index=False)
+inertia_vals = []
+K_range = range(1, 10)
+
+for k in K_range:
+    km = KMeans(n_clusters=k, random_state=42, n_init=10)
+    km.fit(best_X)
+    inertia_vals.append(km.inertia_)
+
+plt.figure()
+plt.plot(K_range, inertia_vals, marker='o')
+plt.title("Elbow Method")
+plt.xlabel("K")
+plt.ylabel("Inertia")
+plt.grid()
+plt.savefig(f"{OUTPUT_DIR}/elbow.png")
+plt.close()
 
 # =========================================
-# 7. SAVE TRAINING HISTORY (INERTIA PER K)
+# 9. SILHOUETTE VS K
 # =========================================
+sil_scores = []
+K_test = range(2, 8)
+
+for k in K_test:
+    km = KMeans(n_clusters=k, random_state=42, n_init=10)
+    labels_k = km.fit_predict(best_X)
+    sil_scores.append(silhouette_score(best_X, labels_k))
+
+plt.figure()
+plt.plot(K_test, sil_scores, marker='o')
+plt.title("Silhouette Score vs K")
+plt.xlabel("K")
+plt.ylabel("Silhouette Score")
+plt.grid()
+plt.savefig(f"{OUTPUT_DIR}/silhouette_vs_k.png")
+plt.close()
+
+# =========================================
+# 10. SAVE DATA
+# =========================================
+final_df = pd.DataFrame(best_X, columns=best_features)
+final_df["Cluster"] = labels
+final_df.to_csv(f"{OUTPUT_DIR}/clustered_data.csv", index=False)
+
 history_df = pd.DataFrame({
-    "K": list(K_range),
-    "Inertia": inertia
+    "K": list(K_test),
+    "Silhouette": sil_scores
 })
-
 history_df.to_csv(f"{OUTPUT_DIR}/training_history.csv", index=False)
 
 # =========================================
-# 8. PRINT SUMMARY
+# 11. PRINT RESULTS
 # =========================================
 print("\n===== FINAL RESULTS =====")
 print(metrics_df)
 
-print("\nAll outputs saved in folder:", OUTPUT_DIR)
+print("\nAll outputs saved in:", OUTPUT_DIR)
